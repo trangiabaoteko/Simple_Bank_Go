@@ -2,6 +2,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/trangiabaoteko/simplebank/controllers"
 	"github.com/trangiabaoteko/simplebank/initializers"
 )
 
@@ -12,10 +13,12 @@ func init() {
 
 func main() {
 	r := gin.Default()
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(200, gin.H{
-			"message": "pong",
-		})
-	})
-	r.Run() // listen and serve on 0.0.0.0:8080
+
+	r.GET("/accounts/", controllers.AccountGetAll)
+	r.GET("/accounts/:id", controllers.AccountGetById)
+	r.POST("/accounts/", controllers.AccountCreate)
+	r.PUT("/accounts/:id", controllers.AccountUpdate)
+	r.DELETE("/accounts/:id", controllers.AccountDelete)
+
+	r.Run()
 }
