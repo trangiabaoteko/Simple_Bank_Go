@@ -9,6 +9,6 @@ func AccountRoutes(accounts *gin.RouterGroup) {
 	accounts.GET("/", controllers.AccountGetAll)
 	accounts.GET("/:id", controllers.AccountGetById)
 	accounts.POST("/", controllers.AccountCreate)
-	accounts.PUT("/:id", controllers.AccountUpdate)
+	// accounts.PUT("/:id", controllers.AccountUpdate)
 	accounts.DELETE("/:id", controllers.AccountDelete)
 }

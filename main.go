@@ -15,6 +15,7 @@ func main() {
 	r := gin.Default()
 
 	routes.AccountRoutes(r.Group("/accounts"))
+	routes.TransferRoutes(r.Group("/transfer"))
 
 	r.Run()
 }

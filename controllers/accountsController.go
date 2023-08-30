@@ -65,38 +65,38 @@ func AccountCreate(c *gin.Context) {
 	})
 }
 
-// [PUT] :/id
-func AccountUpdate(c *gin.Context) {
-	var account models.Account
+// // [PUT] :/id
+// func AccountUpdate(c *gin.Context) {
+// 	var account models.Account
 
-	// get id
-	id := c.Param("id")
+// 	// get id
+// 	id := c.Param("id")
 
-	// get req.body
-	var body struct {
-		Owner    string
-		Balance  int
-		Currency string
-	}
+// 	// get req.body
+// 	var body struct {
+// 		Owner    string
+// 		Balance  int
+// 		Currency string
+// 	}
 
-	c.Bind(&body)
+// 	c.Bind(&body)
 
-	// find account
-	initializers.DB.First(&account, id)
+// 	// find account
+// 	initializers.DB.First(&account, id)
 
-	// update account
-	result := initializers.DB.Model(&account).Updates(models.Account{Owner: body.Owner, Balance: body.Balance, Currency: body.Currency})
+// 	// update account
+// 	result := initializers.DB.Model(&account).Updates(models.Account{Owner: body.Owner, Balance: body.Balance, Currency: body.Currency})
 
-	// response
-	if result.Error != nil {
-		c.Status(400)
-		return
-	}
+// 	// response
+// 	if result.Error != nil {
+// 		c.Status(400)
+// 		return
+// 	}
 
-	c.JSON(200, gin.H{
-		"account": account,
-	})
-}
+// 	c.JSON(200, gin.H{
+// 		"account": account,
+// 	})
+// }
 
 // [DELETE] :/id
 func AccountDelete(c *gin.Context) {
