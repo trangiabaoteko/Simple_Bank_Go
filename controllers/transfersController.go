@@ -3,6 +3,7 @@ package controllers
 import (
 	"strconv"
 
+	"gorm.io/gorm"
 	"github.com/gin-gonic/gin"
 	"github.com/trangiabaoteko/simplebank/initializers"
 	"github.com/trangiabaoteko/simplebank/models"
@@ -21,29 +22,9 @@ func TransferGetAll(c *gin.Context) {
 
 // [PUT] /:sender_id/:receiver_id
 func TransferTransact(c *gin.Context) {
-	var sender, receiver models.Account
-
 	// get sender's id
 	sender_id, _ := strconv.Atoi(c.Param("sender_id"))
 	receiver_id, _ := strconv.Atoi(c.Param("receiver_id"))
-
-	// find sender's account
-	result := initializers.DB.First(&sender, sender_id)
-	if result.Error != nil {
-		c.JSON(404, gin.H{
-			"msg": "sender's account not found",
-		})
-		return
-	}
-
-	// find receiver's account 
-	result = initializers.DB.First(&receiver, receiver_id)
-	if result.Error != nil {
-		c.JSON(404, gin.H{
-			"msg": "receiver's account not found",
-		})
-		return
-	}
 
 	// get req.body
 	var body struct {
@@ -54,39 +35,79 @@ func TransferTransact(c *gin.Context) {
 
 	c.Bind(&body)
 
-	// check currency
-	if receiver.Currency != body.Currency {
-		c.JSON(400, gin.H{
-			"msg": "doesn't match the currency",
-		})
-		return
-	}
-
-	// check sender's balance
-	if sender.Balance - 50000 < body.Amount {
-		c.JSON(400, gin.H{
-			"msg": "insufficient balance",
-		})
-		return
-	}
-
-	// update balance of 2 accounts
-	initializers.DB.Model(&sender).Update("balance", sender.Balance - body.Amount)
-	initializers.DB.Model(&receiver).Update("balance", receiver.Balance + body.Amount)
-
-	// create new transfer and save to db
-	transfer := models.Transfer{Sender: sender_id, Receiver: receiver_id, Amount: body.Amount, Message: body.Message}
-	result = initializers.DB.Create(&transfer)
-
-	// response
-	if result.Error != nil {
+	// handle transaction
+	result := TransferPerformTransaction(initializers.DB, sender_id, receiver_id, body.Amount, body.Currency, body.Message)
+	if result != nil {
 		c.JSON(400, gin.H{
 			"msg": "can't create transaction",
 		})
 		return
 	}
 	
-	c.JSON(200, gin.H{
-		"transfer": transfer,
-	})
+	c.Status(200)
+}
+
+
+
+
+
+// other support functions
+func TransferPerformTransaction(db *gorm.DB, sender_id int, receiver_id int, amount int, currency string, message string) error {
+	// start new transaction
+	tx := db.Begin()
+	if tx.Error != nil {
+		return tx.Error
+	}
+
+
+	// init variables
+	var sender, receiver models.Account
+
+	// find sender's account
+	result := tx.First(&sender, sender_id)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	// find receiver's account 
+	result = tx.First(&receiver, receiver_id)
+	if result.Error != nil {
+		tx.Rollback()
+		return result.Error
+	}
+
+	// check currency
+	if receiver.Currency != currency {
+		tx.Rollback()
+		return result.Error
+	}
+
+	// check sender's balance
+	if sender.Balance - 50000 < amount {
+		tx.Rollback()
+		return result.Error
+	}
+
+	// update balance of 2 accounts
+	if err := tx.Model(&sender).Update("balance", sender.Balance - amount).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+	if err := tx.Model(&receiver).Update("balance", receiver.Balance + amount).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+	// create new transfer and save to db
+	transfer := models.Transfer{Sender: sender_id, Receiver: receiver_id, Amount: amount, Message: message}
+	if err := tx.Create(&transfer).Error; err != nil {
+		tx.Rollback()
+		return err
+	}
+
+
+	// commit transaction
+	tx.Commit()
+	return nil
 }
